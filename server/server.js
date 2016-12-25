@@ -23,6 +23,8 @@ const port = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
 
+//Todos
+
 app.post('/todos', (req, res) => {
     //console.log(req.body);
     var todo = new Todo({
@@ -113,7 +115,7 @@ app.patch('/todos/:id', (req, res) => {
         body.completedAt = null;
     }
 
-    console.log('Body after ',body);
+    console.log('Body after ', body);
 
     Todo.findByIdAndUpdate(id, {
         $set: body
@@ -132,6 +134,27 @@ app.patch('/todos/:id', (req, res) => {
     });
 });
 
+
+//Users
+
+//POST users
+app.post('/users', (req, res) => {
+    //console.log(req.body);
+
+    var body = _.pick(req.body, ['email', 'password']);
+
+    var user = new User(body);
+
+    user.save().then(() => {
+        return user.generateAuthToken();
+        //res.send(user); // this is where the user was sent back before we had the concept of tokens
+    }).then((token) => {
+      res.header('x-auth', token).send(user);
+        //res.send(user);
+    }).catch((err) => {
+        res.status(400).send(err);
+    })
+});
 
 app.listen(port, () => {
     console.log(`Started app on port ${port}`);
