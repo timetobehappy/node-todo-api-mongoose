@@ -3,9 +3,6 @@ const validator = require('validator');
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const _ = require('lodash');
-
-
-
 const rahas_thak = process.env.RAHAS_THAK;
 
 var Schema = mongoose.Schema;
@@ -46,15 +43,15 @@ var userSchema = new Schema({
 });
 
 //Override to determine what data gets send back when model is converted to a JSON value
-userSchema.methods.toJSON = function () {
-  var user = this;
-  var userObject = user.toObject(); // takes mongooser object user and converts it to a regular object where only the properties available on the document exist.
+userSchema.methods.toJSON = function() {
+    var user = this;
+    var userObject = user.toObject(); // takes mongooser object user and converts it to a regular object where only the properties available on the document exist.
 
-  return _.pick(userObject, ['_id', 'email']);
+    return _.pick(userObject, ['_id', 'email']);
 };
 
 userSchema.methods.generateAuthToken = function() {
-    var user = this;
+    var user = this; // Instance methods get called with the doc as the this binding
     var access = 'auth';
 
     var token = jwt.sign({
@@ -62,10 +59,35 @@ userSchema.methods.generateAuthToken = function() {
         access
     }, rahas_thak).toString();
 
-    user.tokens.push({access, token});
+    user.tokens.push({
+        access,
+        token
+    });
 
-    return user.save().then(()=>{
-      return token;
+    return user.save().then(() => {
+        return token;
+    });
+};
+
+
+userSchema.statics.findByToken = function(token) {
+    var User = this; // Model methods get called with model as the this binding
+
+    var decoded;
+
+    try {
+        decoded = jwt.verify(token, rahas_thak); //Happy path
+    } catch (e) {
+      return Promise.reject('jwt failure'); // or below will also work
+      // return new Promise((resolve, reject)=>{
+      //   reject();
+      // });
+    }
+
+    return User.findOne({
+        '_id': decoded._id,
+        'tokens.token': token,
+        'tokens.access': 'auth'
     });
 };
 

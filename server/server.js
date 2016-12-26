@@ -12,9 +12,15 @@ var {
 var {
     Todo
 } = require('./models/todo');
-var {
+const {
     User
 } = require('./models/user');
+const {
+    authenticate
+} = require('./middleware/authenticate');
+
+
+
 
 
 var app = express();
@@ -149,11 +155,30 @@ app.post('/users', (req, res) => {
         return user.generateAuthToken();
         //res.send(user); // this is where the user was sent back before we had the concept of tokens
     }).then((token) => {
-      res.header('x-auth', token).send(user);
+        res.header('x-auth', token).send(user);
         //res.send(user);
     }).catch((err) => {
         res.status(400).send(err);
     })
+});
+
+
+// Private routes
+
+app.get('/users/me', (req, res) => {
+    var token = req.header('x-auth');
+
+    User.findByToken(token).then((user) => {
+        if (!user) {
+          return Promise.reject();
+        }
+
+        res.send(user);
+
+    }).catch((e) => {
+        res.status(401).send()
+    });
+
 });
 
 app.listen(port, () => {
