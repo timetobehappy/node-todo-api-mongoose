@@ -3,6 +3,7 @@ const validator = require('validator');
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const _ = require('lodash');
+const bcrypt = require('bcryptjs');
 const rahas_thak = process.env.RAHAS_THAK;
 
 var Schema = mongoose.Schema;
@@ -70,7 +71,7 @@ userSchema.methods.generateAuthToken = function() {
 };
 
 
-userSchema.statics.findByToken = function(token) {
+userSchema.statics.findByToken = function(token) { //Model methods
     var User = this; // Model methods get called with model as the this binding
 
     var decoded;
@@ -78,10 +79,10 @@ userSchema.statics.findByToken = function(token) {
     try {
         decoded = jwt.verify(token, rahas_thak); //Happy path
     } catch (e) {
-      return Promise.reject('jwt failure'); // or below will also work
-      // return new Promise((resolve, reject)=>{
-      //   reject();
-      // });
+        return Promise.reject('jwt failure'); // or below will also work
+        // return new Promise((resolve, reject)=>{
+        //   reject();
+        // });
     }
 
     return User.findOne({
@@ -92,7 +93,22 @@ userSchema.statics.findByToken = function(token) {
 };
 
 
+userSchema.pre('save', function(next) {
+    var user = this;
 
+    if (user.isModified('password')) {
+        bcrypt.genSalt(10, (err, salt) => {
+            //console.log('Salt is ', salt);
+            bcrypt.hash(user.password, salt, (err, hash) => {
+                //console.log('Hashed value is :', hash);
+                user.password = hash;
+                next();
+            });
+        });
+    } else {
+        next();
+    }
+});
 
 
 

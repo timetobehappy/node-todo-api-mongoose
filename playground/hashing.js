@@ -1,19 +1,38 @@
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
 
 
 const rahas_thak = process.env.RAHAS_THAK;
 
-var data = {
-    id: 10
-};
+var password = '123pass!';
 
-var token = jwt.sign(data, rahas_thak);
-console.log(token);
 
-var decoded = jwt.verify(token, rahas_thak);
-console.log("Decoded value is ", decoded);
+bcrypt.genSalt(15, (err, salt) => {
+    console.log('Salt is ', salt);
+    bcrypt.hash(password, salt, (err, hash) => {
+        console.log('Hashed value is :', hash);
+    });
+});
+
+
+//var hashedPassword = '$2a$10$kGx2xlI4flxU0OBsOtpwiOPPu4GJr.9GmYahemVwfW.UbbBaxtu6G';
+var hashedPassword = '$2a$10$E.Q3DbvD9ussVGytB3k3KukNcIVpvoHMJ78hFlhSe18HwgonnJ07G';
+bcrypt.compare(password, hashedPassword, (err, res) => {
+    console.log('Result', res);
+});
+
+
+// var data = {
+//     id: 10
+// };
+//
+// var token = jwt.sign(data, rahas_thak);
+// console.log(token);
+//
+// var decoded = jwt.verify(token, rahas_thak);
+// console.log("Decoded value is ", decoded);
 
 
 //
