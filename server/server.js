@@ -31,10 +31,11 @@ app.use(bodyParser.json());
 
 //Todos
 
-app.post('/todos', (req, res) => {
+app.post('/todos', authenticate, (req, res) => {
     //console.log(req.body);
     var todo = new Todo({
-        text: req.body.text
+        text: req.body.text,
+        _creator: req.user._id
     });
 
     todo.save().then((doc) => {
@@ -46,8 +47,10 @@ app.post('/todos', (req, res) => {
 });
 
 
-app.get('/todos', (req, res) => {
-    Todo.find().then((todos) => {
+app.get('/todos', authenticate, (req, res) => {
+    Todo.find({
+        _creator: req.user._id
+    }).then((todos) => {
         res.send({
             todos
         });
@@ -57,7 +60,7 @@ app.get('/todos', (req, res) => {
 });
 
 
-app.get('/todos/:id', (req, res) => {
+app.get('/todos/:id', authenticate, (req, res) => {
 
     var id = req.params.id;
 
@@ -65,7 +68,11 @@ app.get('/todos/:id', (req, res) => {
         return res.status(404).send();
     }
 
-    Todo.findById(id).then((todo) => {
+    //Todo.findById(id).then((todo) => { // this was when it was a public route
+    Todo.findOne({
+        _id: id,
+        _creator: req.user._id
+    }).then((todo) => { //private route
         if (!todo) {
             return res.status(404).send();
         }
@@ -80,7 +87,7 @@ app.get('/todos/:id', (req, res) => {
 });
 
 
-app.delete('/todos/:id', (req, res) => {
+app.delete('/todos/:id', authenticate, (req, res) => {
 
     var id = req.params.id;
 
@@ -88,7 +95,11 @@ app.delete('/todos/:id', (req, res) => {
         return res.status(404).send();
     }
 
-    Todo.findByIdAndRemove(id).then((todo) => {
+    //Todo.findByIdAndRemove(id).then((todo) => {
+    Todo.findOneAndRemove({
+        _id: id,
+        _creator: req.user._id
+    }).then((todo) => {
         if (!todo) {
             return res.status(404).send();
         }
@@ -102,7 +113,7 @@ app.delete('/todos/:id', (req, res) => {
     });
 });
 
-app.patch('/todos/:id', (req, res) => {
+app.patch('/todos/:id', authenticate, (req, res) => {
 
     var id = req.params.id;
     var body = _.pick(req.body, ['text', 'completed']);
@@ -123,7 +134,11 @@ app.patch('/todos/:id', (req, res) => {
 
     console.log('Body after ', body);
 
-    Todo.findByIdAndUpdate(id, {
+    //Todo.findByIdAndUpdate(id, {
+    Todo.findOneAndUpdate({
+      _id: id,
+      _creator: req.user._id
+    }, {
         $set: body
     }, {
         new: true
@@ -194,9 +209,9 @@ app.post('/users/login', (req, res) => {
 
 app.delete('/users/me/token', authenticate, (req, res) => {
 
-  console.log("Inside delete token", req.token);
+    console.log("Inside delete token", req.token);
     req.user.removeToken(req.token).then(() => {
-      //console.log("user after remove", JSON.stringify(user, null, 2));
+        //console.log("user after remove", JSON.stringify(user, null, 2));
         res.status(200).send();
     }).catch((e) => {
         console.log(e);
