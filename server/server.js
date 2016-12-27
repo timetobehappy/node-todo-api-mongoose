@@ -165,21 +165,48 @@ app.post('/users', (req, res) => {
 
 // Private routes
 
-app.get('/users/me', (req, res) => {
-    var token = req.header('x-auth');
-
-    User.findByToken(token).then((user) => {
-        if (!user) {
-          return Promise.reject();
-        }
-
-        res.send(user);
-
-    }).catch((e) => {
-        res.status(401).send()
-    });
+app.get('/users/me', authenticate, (req, res) => {
+    res.send(req.user);
 
 });
+
+//POST /users/login {email, password}
+
+app.post('/users/login', (req, res) => {
+    var body = _.pick(req.body, ['email', 'password']);
+
+    //res.send(body);
+
+    User.findByCredentials(body.email, body.password).then((user) => {
+        //res.send(user);
+        return user.generateAuthToken().then((token) => {
+            res.header('x-auth', token).send(user);
+        });
+    }).catch((e) => {
+        res.status(400).send();
+    });
+
+
+});
+
+
+//DELETE /users/me/token
+
+app.delete('/users/me/token', authenticate, (req, res) => {
+
+  console.log("Inside delete token", req.token);
+    req.user.removeToken(req.token).then(() => {
+      //console.log("user after remove", JSON.stringify(user, null, 2));
+        res.status(200).send();
+    }).catch((e) => {
+        console.log(e);
+        res.status(400).send();
+    });
+});
+
+
+
+
 
 app.listen(port, () => {
     console.log(`Started app on port ${port}`);

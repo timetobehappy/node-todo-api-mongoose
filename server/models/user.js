@@ -70,6 +70,19 @@ userSchema.methods.generateAuthToken = function() {
     });
 };
 
+userSchema.methods.removeToken = function(token) {
+  console.log("Inside removeToken");
+    var user = this;
+
+    console.log("user before remove", JSON.stringify(user, null, 2));
+    return user.update({
+        $pull: {
+            tokens: {
+                token: token
+            }
+        }
+    });
+};
 
 userSchema.statics.findByToken = function(token) { //Model methods
     var User = this; // Model methods get called with model as the this binding
@@ -78,8 +91,10 @@ userSchema.statics.findByToken = function(token) { //Model methods
 
     try {
         decoded = jwt.verify(token, rahas_thak); //Happy path
+        console.log("decoded is", decoded);
     } catch (e) {
-        return Promise.reject('jwt failure'); // or below will also work
+      console.log("jwt verfify failed");
+        return Promise.reject(); // or below will also work
         // return new Promise((resolve, reject)=>{
         //   reject();
         // });
@@ -89,6 +104,35 @@ userSchema.statics.findByToken = function(token) { //Model methods
         '_id': decoded._id,
         'tokens.token': token,
         'tokens.access': 'auth'
+    });
+};
+
+
+userSchema.statics.findByCredentials = function(email, password) {
+    var User = this;
+
+    return User.findOne({
+        email
+    }).then((user) => {
+        if (!user) {
+            return Promise.reject();
+        }
+
+        return new Promise((resolve, reject) => {
+            bcrypt.compare(password, user.password, (err, res) => {
+                if (res) {
+                    console.log(JSON.stringify(user));
+                    resolve(user);
+                } else {
+                    console.log("Not in this reject");
+                    reject();
+                }
+            });
+        });
+
+    }).catch((e) => {
+        console.log("Some error?????", e);
+        return Promise.reject(e);
     });
 };
 
